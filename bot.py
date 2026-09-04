@@ -5,9 +5,7 @@ import yfinance as yf
 # ดึงค่า Token จาก GitHub Secrets ที่ตั้งชื่อว่า LINE_TOKEN
 CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_TOKEN")
 # ใส่ User ID ของคุณสำหรับรับข้อความ (หรือเปลี่ยนเป็นรหัสผู้ใช้ของคุณ)
-USER_ID = "y/RaGyzitie+yUKCZcOvafLsnoAEFx/LFcm6iN2w4VQ2C0VSCymHxnw06KENeia6egWk"
-    "JuvvLsyCTAKZfJKUp6SgWMQ915pcNvR1DdImJelwy4yLIEgyO1bLs0JuFemkjS2zLG9E"
-    "yv1lAXCaLeO+AdB04t89/1O/w1cDnylFU="
+USER_ID = "Ub3a230a9ffbfcb174e17cfd01dd3cbd6"
 
 target_stocks = {
     "VOO": 705,
