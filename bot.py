@@ -30,33 +30,27 @@ def send_line_message(message):
     print(response.json())
 
 def check_stock_prices():
-    report = "📈 สรุปราคาหุ้นล่าสุด (นอกเวลาทำการ):\n"
+    report = "📈 สรุปราคา Pre-market (ณ ตอนนี้):\n"
     alert_triggered = False
     
     for ticker, target_price in target_stocks.items():
         current_price = None
         try:
             stock = yf.Ticker(ticker)
+            info = stock.info
             
-            # ลำดับที่ 1: ดึงจาก info ดึง currentPrice หรือ regularMarketPrice
-            try:
-                info = stock.info
-                current_price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("regularMarketPreviousClose")
-            except Exception:
-                pass
+            # ลำดับที่ 1: ดึงราคา Pre-market หรือ Post-market สดๆ ของตอนนี้โดยตรง
+            current_price = info.get("preMarketPrice") or info.get("postMarketPrice")
             
-            # ลำดับที่ 2: ถ้ายังไม่ได้ ให้ลองดึงจาก fast_info
+            # ลำดับที่ 2: ถ้าช่วงนั้นไม่มีราคา Pre-market ให้ดึง currentPrice หรือ regularMarketPrice
             if current_price is None or str(current_price) == 'nan':
-                if hasattr(stock, "fast_info") and "lastPrice" in stock.fast_info:
-                    current_price = stock.fast_info["lastPrice"]
+                current_price = info.get("currentPrice") or info.get("regularMarketPrice")
             
-            # ลำดับที่ 3: ถ้ายังไม่ได้อีก ให้ดึงจากประวัติล่าสุด .history()
+            # ลำดับที่ 3: สำรองสุดท้าย ใช้ราคาปิดเดิม
             if current_price is None or str(current_price) == 'nan':
-                hist = stock.history(period="1d")
-                if not hist.empty and 'Close' in hist.columns:
-                    current_price = hist['Close'].dropna().iloc[-1]
+                current_price = info.get("regularMarketPreviousClose") or info.get("previousClose")
 
-            # แปลงและตรวจสอบค่า
+            # ตรวจสอบและแสดงผลเป็นตัวเลข
             if current_price is not None and str(current_price) != 'nan':
                 price_val = float(current_price)
                 if price_val <= target_price:
@@ -77,4 +71,3 @@ def check_stock_prices():
 
 if __name__ == "__main__":
     check_stock_prices()
-    
