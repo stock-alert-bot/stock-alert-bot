@@ -30,40 +30,53 @@ def send_line_message(message):
     print(response.json())
 
 def check_stock_prices():
-    report = "📈 สรุปราคาปิดตลาดล่าสุด:\n"
+    report = "📈 สรุปราคาปัจจุบัน/ล่าสุด:\n"
     alert_triggered = False
     
     for ticker, target_price in target_stocks.items():
+        current_price = None
         try:
             stock = yf.Ticker(ticker)
-            closing_price = None
             
-            # ดึงข้อมูลราคาย้อนหลังรายวัน (เอาแท่งล่าสุดที่ตลาดปิดไปแล้ว)
-            hist = stock.history(period="2d")
-            if not hist.empty:
-                # ใช้ราคา Close ของแถวสุดท้ายที่มีการบันทึก (ราคาปิดของรอบล่าสุด)
-                closing_price = hist['Close'].iloc[-1]
+            # ลำดับที่ 1: ดึงผ่าน fast_info["lastPrice"] (จะได้ราคาปัจจุบันหรือราคาอัปเดตล่าสุด ณ ขณะนั้นทันที)
+            try:
+                if hasattr(stock, "fast_info") and "lastPrice" in stock.fast_info:
+                    val = stock.fast_info["lastPrice"]
+                    if val is not None:
+                        current_price = float(val)
+            except Exception:
+                pass
             
-            # ถ้าดึงจาก history ไม่ได้ ให้สำรองใช้ regularMarketPreviousClose หรือ previousClose จาก info
-            if closing_price is None:
+            # ลำดับที่ 2: ถ้าวิธีแรกไม่ได้ ให้ดึงจาก info (currentPrice หรือ regularMarketPrice)
+            if current_price is None or str(current_price) == 'nan':
                 info = stock.info
-                closing_price = info.get("regularMarketPreviousClose") or info.get("previousClose")
+                val = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("regularMarketPreviousClose")
+                if val is not None:
+                    current_price = float(val)
 
-            if closing_price is not None:
-                # เช็กเงื่อนไข: ถ้าราคาปิด <= ราคาเป้าหมาย
-                if closing_price <= target_price:
-                    report += f"🚨 - {ticker}: {closing_price:.2f} (ถึงเป้า <= {target_price} แล้ว!)\n"
+            # ลำดับที่ 3: สำรองสุดท้าย ใช้ประวัติรายวัน .history()
+            if current_price is None or str(current_price) == 'nan':
+                hist = stock.history(period="1d")
+                if not hist.empty and 'Close' in hist.columns:
+                    val = hist['Close'].dropna().iloc[-1]
+                    if val is not None:
+                        current_price = float(val)
+
+            # ตรวจสอบผลลัพธ์และส่งค่าออกเป็นตัวเลข
+            if current_price is not None and str(current_price) != 'nan':
+                if current_price <= target_price:
+                    report += f"🚨 - {ticker}: {current_price:.2f} (ถึงเป้า <= {target_price} แล้ว!)\n"
                     alert_triggered = True
                 else:
-                    report += f"- {ticker}: {closing_price:.2f} (เป้า: {target_price})\n"
+                    report += f"- {ticker}: {current_price:.2f} (เป้า: {target_price})\n"
             else:
-                report += f"- {ticker}: ไม่พบข้อมูลราคาปิด\n"
+                report += f"- {ticker}: ไม่พบข้อมูลราคา\n"
                 
         except Exception as e:
             report += f"- {ticker}: เกิดข้อผิดพลาด\n"
             
     if alert_triggered:
-        report = "⚠️ **แจ้งเตือน! ราคาปิดตลาดเข้าเป้าแล้ว** ⚠️\n\n" + report
+        report = "⚠️ **แจ้งเตือน! ราคาหุ้นเข้าเป้าแล้ว** ⚠️\n\n" + report
 
     send_line_message(report)
 
