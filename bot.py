@@ -30,7 +30,7 @@ def send_line_message(message):
     print(response.json())
 
 def check_stock_prices():
-    report = "📈 สรุปราคาปัจจุบัน/ล่าสุด:\n"
+    report = "📈 สรุปราคาหุ้นล่าสุด (นอกเวลาทำการ):\n"
     alert_triggered = False
     
     for ticker, target_price in target_stocks.items():
@@ -38,37 +38,32 @@ def check_stock_prices():
         try:
             stock = yf.Ticker(ticker)
             
-            # ลำดับที่ 1: ดึงผ่าน fast_info["lastPrice"] (จะได้ราคาปัจจุบันหรือราคาอัปเดตล่าสุด ณ ขณะนั้นทันที)
+            # ลำดับที่ 1: ดึงจาก info ดึง currentPrice หรือ regularMarketPrice
             try:
-                if hasattr(stock, "fast_info") and "lastPrice" in stock.fast_info:
-                    val = stock.fast_info["lastPrice"]
-                    if val is not None:
-                        current_price = float(val)
+                info = stock.info
+                current_price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("regularMarketPreviousClose")
             except Exception:
                 pass
             
-            # ลำดับที่ 2: ถ้าวิธีแรกไม่ได้ ให้ดึงจาก info (currentPrice หรือ regularMarketPrice)
+            # ลำดับที่ 2: ถ้ายังไม่ได้ ให้ลองดึงจาก fast_info
             if current_price is None or str(current_price) == 'nan':
-                info = stock.info
-                val = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("regularMarketPreviousClose")
-                if val is not None:
-                    current_price = float(val)
-
-            # ลำดับที่ 3: สำรองสุดท้าย ใช้ประวัติรายวัน .history()
+                if hasattr(stock, "fast_info") and "lastPrice" in stock.fast_info:
+                    current_price = stock.fast_info["lastPrice"]
+            
+            # ลำดับที่ 3: ถ้ายังไม่ได้อีก ให้ดึงจากประวัติล่าสุด .history()
             if current_price is None or str(current_price) == 'nan':
                 hist = stock.history(period="1d")
                 if not hist.empty and 'Close' in hist.columns:
-                    val = hist['Close'].dropna().iloc[-1]
-                    if val is not None:
-                        current_price = float(val)
+                    current_price = hist['Close'].dropna().iloc[-1]
 
-            # ตรวจสอบผลลัพธ์และส่งค่าออกเป็นตัวเลข
+            # แปลงและตรวจสอบค่า
             if current_price is not None and str(current_price) != 'nan':
-                if current_price <= target_price:
-                    report += f"🚨 - {ticker}: {current_price:.2f} (ถึงเป้า <= {target_price} แล้ว!)\n"
+                price_val = float(current_price)
+                if price_val <= target_price:
+                    report += f"🚨 - {ticker}: {price_val:.2f} (ถึงเป้า <= {target_price} แล้ว!)\n"
                     alert_triggered = True
                 else:
-                    report += f"- {ticker}: {current_price:.2f} (เป้า: {target_price})\n"
+                    report += f"- {ticker}: {price_val:.2f} (เป้า: {target_price})\n"
             else:
                 report += f"- {ticker}: ไม่พบข้อมูลราคา\n"
                 
@@ -82,3 +77,4 @@ def check_stock_prices():
 
 if __name__ == "__main__":
     check_stock_prices()
+    
