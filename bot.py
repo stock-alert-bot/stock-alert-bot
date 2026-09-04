@@ -52,7 +52,10 @@ def check_stock_prices():
     send_line_message(full_message)
     print("ส่งแจ้งเตือนเข้า LINE แล้ว")
   else:
-    print("ยังไม่มีหุ้นถึงเป้าหมายในรอบนี้")
+    send_line_message(
+        "🤖 บอทเช็คราคาหุ้นรอบนี้: ยังไม่มีหุ้นตัวไหนถึงราคาเป้าหมายครับ"
+    )
+    print("ส่งรายงานสถานะปกติเข้า LINE แล้ว")
 
 
 if __name__ == "__main__":
