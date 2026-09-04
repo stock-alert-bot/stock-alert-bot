@@ -2,8 +2,12 @@ import os
 import requests
 import yfinance as yf
 
+# ดึงค่า Token จาก GitHub Secrets ที่ตั้งชื่อว่า LINE_TOKEN
 CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_TOKEN")
-USER_ID = "U218ad9e5b909ea9dd6edc7b0d6f6c622"
+# ใส่ User ID ของคุณสำหรับรับข้อความ (หรือเปลี่ยนเป็นรหัสผู้ใช้ของคุณ)
+USER_ID = "y/RaGyzitie+yUKCZcOvafLsnoAEFx/LFcm6iN2w4VQ2C0VSCymHxnw06KENeia6egWk"
+    "JuvvLsyCTAKZfJKUp6SgWMQ915pcNvR1DdImJelwy4yLIEgyO1bLs0JuFemkjS2zLG9E"
+    "yv1lAXCaLeO+AdB04t89/1O/w1cDnylFU="
 
 target_stocks = {
     "VOO": 705,
@@ -13,50 +17,35 @@ target_stocks = {
     "AVGO": 253,
 }
 
-
 def send_line_message(message):
-  url = "https://api.line.me/v2/bot/message/push"
-  headers = {
-      "Content-Type": "application/json",
-      "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}",
-  }
-  data = {
-      "to": USER_ID,
-      "messages": [{"type": "text", "text": message}],
-  }
-  response = requests.post(url, headers=headers, json=data)
-  print(response.json())
-
+    url = "https://api.line.me/v2/bot/message/push"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {CHANNEL_ACCESS_TOKEN}",
+    }
+    data = {
+        "to": USER_ID,
+        "messages": [{"type": "text", "text": message}],
+    }
+    response = requests.post(url, headers=headers, json=data)
+    print(response.json())
 
 def check_stock_prices():
-  alert_messages = []
-  for ticker, target_price in target_stocks.items():
-    try:
-      stock = yf.Ticker(ticker)
-      df = stock.history(period="1d")
-      if not df.empty:
-        current_price = round(df["Close"].iloc[-1], 2)
-        print(f"{ticker}: {current_price} (เป้าหมาย <= {target_price})")
-        if current_price <= target_price:
-          alert_messages.append(
-              f"🚨 แจ้งเตือน! {ticker} ราคาลงมาอยู่ที่ {current_price}"
-              f" (ถึงเป้า <= {target_price})"
-          )
-    except Exception as e:
-      print(f"เกิดข้อผิดพลาด {ticker}: {e}")
-
-  if alert_messages:
-    full_message = "📉 สรุปหุ้นที่ถึงราคาเป้าหมาย:\n\n" + "\n".join(
-        alert_messages
-    )
-    send_line_message(full_message)
-    print("ส่งแจ้งเตือนเข้า LINE แล้ว")
-  else:
-    send_line_message(
-        "🤖 บอทเช็คราคาหุ้นรอบนี้: ยังไม่มีหุ้นตัวไหนถึงราคาเป้าหมายครับ"
-    )
-    print("ส่งรายงานสถานะปกติเข้า LINE แล้ว")
-
+    report = "📈 สรุปราคาราคาหุ้น:\n"
+    for ticker, target_price in target_stocks.items():
+        try:
+            stock = yf.Ticker(ticker)
+            # ดึงราคาปัจจุบัน
+            todays_data = stock.history(period="1d")
+            if not todays_data.empty:
+                current_price = todays_data['Close'].iloc[-1]
+                report += f"- {ticker}: {current_price:.2f} (เป้า: {target_price})\n"
+            else:
+                report += f"- {ticker}: ไม่พบข้อมูลราคา\n"
+        except Exception as e:
+            report += f"- {ticker}: เกิดข้อผิดพลาด\n"
+            
+    send_line_message(report)
 
 if __name__ == "__main__":
-  check_stock_prices()
+    check_stock_prices()
