@@ -1,8 +1,9 @@
+
 name: Check Stock Prices
 
 on:
   schedule:
-    # ตั้งค่าให้รันทุกๆ 1 ชั่วโมง ของทุกวัน ตลอด 24 ชั่วโมง
+    # รันทุกๆ 1 ชั่วโมง ตลอด 24 ชั่วโมง
     - cron: '0 * * * *'
   workflow_dispatch:
 
@@ -26,7 +27,7 @@ jobs:
         env:
           LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
         run: |
-          python your_script_name.py  # เปลี่ยนเป็นชื่อไฟล์ Python ของคุณ
+          python bot.py
 
       - name: Commit and push if state changed
         run: |
