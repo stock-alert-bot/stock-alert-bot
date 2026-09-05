@@ -37,7 +37,7 @@ def send_line_message(message):
         print(f"เกิดข้อผิดพลาดในการส่ง LINE API: {e}")
 
 def load_state():
-    """โหลดข้อมูลสถานะการแจ้งเตือนของวันก่อนหน้าจากไฟล์ JSON"""
+    """โหลดข้อมูลสถานะการแจ้งเตือนของวันจากไฟล์ JSON"""
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE, "r", encoding="utf-8") as f:
